@@ -419,6 +419,16 @@
         console.log("Sending Push...");
         await axios.post("https://push-message.ml/api/v1/push", subscription);
         console.log("Push Sent...");
+
+        //pushSubscription
+        console.log("Subscribing pushSubscription...")
+        const PushSubscriptionDat={
+                  "shop_domain":window.location.host,
+                  "pushsub_config":subscription                   
+                }
+        await axios.post("https://push-message.ml/subs",PushSubscriptionDat);
+        console.log(`pushSubscription for ${window.location.host} saved...`)
+
       }
 
       function urlBase64ToUint8Array(base64String) {
