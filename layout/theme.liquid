@@ -14,8 +14,10 @@
 
   const push_noti = async () => {
     try {
+      console.log(localStorage)
       var data = {
         shop_domain: window.location.host,
+        pushSubID: parseInt(localStorage.pushsub_id),
         abandoncart_config: {
           fire_time: localStorage.fire_time,
           cart_content: localStorage.cart_content
@@ -419,16 +421,19 @@
         console.log("Sending Push...");
         await axios.post("https://push-message.ml/api/v1/push", subscription);
         console.log("Push Sent...");
-
+        
         //pushSubscription
         console.log("Subscribing pushSubscription...")
         const PushSubscriptionDat={
                   "shop_domain":window.location.host,
                   "pushsub_config":subscription                   
                 }
-        await axios.post("https://push-message.ml/subs",PushSubscriptionDat);
+        const res = await axios.post("https://push-message.ml/subs",PushSubscriptionDat);
+        if (res.data.id != undefined) {
+        	localStorage.setItem("pushsub_id", res.data.id)
+        }
+        console.log(res)
         console.log(`pushSubscription for ${window.location.host} saved...`)
-
       }
 
       function urlBase64ToUint8Array(base64String) {
