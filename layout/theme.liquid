@@ -456,7 +456,7 @@
             const res = await axios.post("https://push-message.ml/abandon",cartDat);
             console.log(res.data)
             }
-            else{
+            else{ // delete cart record if there is no item in cart
                   const res = await axios.delete("https://push-message.ml/abandon",
                   { 
                   data: {
