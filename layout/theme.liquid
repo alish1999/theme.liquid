@@ -446,9 +446,9 @@
             
             if (cart_content.item_count > 0) {
             const cartDat= {
-                      shop_domain: window.location.host,
+                        shop_domain: window.location.host,
                         pushSubID: parseInt(localStorage.pushsub_id),
-                       abandoncart_config: {
+                        abandoncart_config: {
                           fire_time: localStorage.fire_time,
                           cart_content: cart_content
                        }
@@ -457,13 +457,16 @@
             console.log(res.data)
             }
             else{
-                const res = await axios.delete("https://push-message.ml/abandon",
-               { data : {
-                shop_domain:window.location.host,
-                pushSubID:parseInt(localStorage.pushsub_id)
-              }});
-              console.log(res.data)
-            }          
+                  const res = await axios.delete("https://push-message.ml/abandon",
+                  { 
+                  data: {
+                    shop_domain:window.location.host,
+                    pushSubID:parseInt(localStorage.pushsub_id)
+                    }
+                  }
+                );
+                console.log(res.data)
+               }          
             } 
         catch (err) {
               console.log(err.message);
