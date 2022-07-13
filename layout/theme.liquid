@@ -15,21 +15,7 @@
   const push_noti = async () => {
     try {
       console.log(localStorage)
-      var data = {
-        shop_domain: window.location.host,
-        pushSubID: parseInt(localStorage.pushsub_id),
-        abandoncart_config: {
-          fire_time: localStorage.fire_time,
-          cart_content: localStorage.cart_content
-      }};
-      await fetch(`https://push-message.ml/abandon`, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      await update_cart_state()
       console.log(
         `Fire push notification here\nThere are ${
           localStorage.cart_content.item_count
