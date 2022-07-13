@@ -40,6 +40,9 @@
     } catch (err) {
       console.log(err.message);
     }
+    finally{
+        update_cart_state()
+      }
   };
 
   const store_push_time = async () => {
@@ -77,6 +80,44 @@
       console.log(err.message);
     }
   };
+
+  const update_cart_state = async () =>{
+    try {
+            var cart_content = await fetch("/cart.js").then((response) =>
+              response.json()
+            );
+            localStorage.setItem("cart_content", JSON.stringify(cart_content));
+            console.log(cart_content.item_count," items in cart")
+            
+            if (cart_content.item_count > 0) {
+            const cartDat= {
+                        shop_domain: window.location.host,
+                        pushSubID: parseInt(localStorage.pushsub_id),
+                        abandoncart_config: {
+                          fire_time: localStorage.fire_time,
+                          cart_content: cart_content
+                       }
+                      };
+            const res = await axios.post("https://push-message.ml/abandon",cartDat);
+            console.log(res.data)
+            }
+            else{ // delete cart record if there is no item in cart
+                  const res = await axios.delete("https://push-message.ml/abandon",
+                  { 
+                  data: {
+                    shop_domain:window.location.host,
+                    pushSubID:parseInt(localStorage.pushsub_id)
+                    }
+                  }
+                );
+                console.log(res.data)
+               }          
+            } 
+        catch (err) {
+              console.log(err.message);
+          }
+  }
+
 
   window.addEventListener("beforeunload", async (event) => {
     try {
@@ -437,40 +478,7 @@
 
 
         //save cart info
-        try {
-            var cart_content = await fetch("/cart.js").then((response) =>
-              response.json()
-            );
-            localStorage.setItem("cart_content", JSON.stringify(cart_content));
-            console.log(cart_content.item_count," items in cart")
-            
-            if (cart_content.item_count > 0) {
-            const cartDat= {
-                        shop_domain: window.location.host,
-                        pushSubID: parseInt(localStorage.pushsub_id),
-                        abandoncart_config: {
-                          fire_time: localStorage.fire_time,
-                          cart_content: cart_content
-                       }
-                      };
-            const res = await axios.post("https://push-message.ml/abandon",cartDat);
-            console.log(res.data)
-            }
-            else{ // delete cart record if there is no item in cart
-                  const res = await axios.delete("https://push-message.ml/abandon",
-                  { 
-                  data: {
-                    shop_domain:window.location.host,
-                    pushSubID:parseInt(localStorage.pushsub_id)
-                    }
-                  }
-                );
-                console.log(res.data)
-               }          
-            } 
-        catch (err) {
-              console.log(err.message);
-          }
+        await update_cart_state()
       }
 
       function urlBase64ToUint8Array(base64String) {
