@@ -123,6 +123,7 @@
     try {
       var href = event.target.activeElement.href;
       var tagName = event.target.activeElement.tagName;
+      await update_cart_state()
       if (performance.navigation.type != 1 && tagName != "INPUT") {
         if (!href.includes(window.location.host)) {
           console.log("Activated", performance.navigation.type, href);
