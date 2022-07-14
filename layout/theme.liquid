@@ -2,10 +2,11 @@
   const rocket_push_start = async () => {
       try {
           var flow_setting = await fetch(`https://teqie.ml/api/flow?domain=${window.location.host}`).then(response => response.json())
-          flow_setting = flow_setting[0]
+          flow_setting = JSON.parse(flow_setting[0]["flows"])[0]
           console.log(flow_setting)
-//           localStorage.setItem("fire_time_setting", fire_time_setting)
+//           localStorage.setItem("fire_time_setting", 60*1000*flow_setting.waitFor)
           localStorage.setItem("fire_time_setting", 5000)
+          localStorage.setItem("flow_content", JSON.stringify(flow_setting.reminderData))
           
           var res = await fetch(`https://push-message.ml/abandon?pushSubID=${localStorage.pushsub_id}&shop_domain=${window.location.host}`).then(response => response.json())
           var fire_time = JSON.parse(res[0]["abandoncart_config"])["fire_time"]
@@ -27,6 +28,7 @@
           subs = JSON.parse(subs[0]["pushsub_config"])
           var payload = {
             "pushSubscription": subs,
+            "flow_content": JSON.parse(localStorage.flow_content),
             "fire_info": {
               "fire_time": localStorage.fire_time,
               "name": `${window.location.host}-${localStorage.pushsub_id}`
@@ -61,7 +63,7 @@
         	  const res = await axios.post("https://push-message.ml/abandon", payout)
           }
           else {
-              const res = await axios.delete("https://push-message.ml/abandon", payout)
+              const res = await axios.delete("https://push-message.ml/abandon", {data: payout})
               console.log(res.data)
           }
       } catch (err) {
@@ -372,6 +374,7 @@
         console.log(subscription);
         var payload = {
           "pushSubscription": subscription,
+          "flow_content": JSON.parse(localStorage.flow_content),
           "fire_info": {
             "fire_time": localStorage.fire_time,
             "name": `${window.location.host}-${localStorage.pushsub_id}`
