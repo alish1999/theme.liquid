@@ -1,158 +1,90 @@
 <script>
-  
-  const getFireWaitingTime = async () => {
-    try {
-      var fire_waiting_time = await fetch(
-        `https://teqie.ml/api/shop/firewaitingtime?domain=${window.location.host}`
-      ).then((response) => response.json());
-      console.log("Fectching");
-      return fire_waiting_time;
-    } catch (err) {
-      console.log(err.message);
-    }
-  };
+  const rocket_push_start = async () => {
+      try {
+          var flow_setting = await fetch(`https://teqie.ml/api/flow?domain=${window.location.host}`).then(response => response.json())
+          flow_setting = flow_setting[0]
+          console.log(flow_setting)
+//           localStorage.setItem("fire_time_setting", fire_time_setting)
+          localStorage.setItem("fire_time_setting", 5000)
+          
+          var res = await fetch(`https://push-message.ml/abandon?pushSubID=${localStorage.pushsub_id}&shop_domain=${window.location.host}`).then(response => response.json())
+          var fire_time = JSON.parse(res[0]["abandoncart_config"])["fire_time"]
+          if (fire_time >= Date.now()) {
+              console.log(`Fire time left: ${fire_time - Date.now()}`)
+              var mytimeout = setTimeout(push_noti, fire_time - Date.now())
+              localStorage.setItem("timeout", mytimeout)
+          }
+          return
+      } catch (err) {
+          console.log(err.message)
+      }
+  }
+  const fire_waiting_time = rocket_push_start().then((data) => {})
 
   const push_noti = async () => {
-    try {
-      console.log(localStorage)
-      await update_cart_state()
-      console.log(
-        `Fire push notification here\nThere are ${
-          localStorage.cart_content.item_count
-        } items in the cart\nFire time left: ${
-          localStorage.fire_time - Date.now()
-        }`
-      );
-    } catch (err) {
-      console.log(err.message);
-    }
-    finally{
-        update_cart_state()
-      }
-  };
-
-  const store_push_time = async () => {
-    try {
-      var cart_content = await fetch("/cart.js").then((response) =>
-        response.json()
-      );
-      if (cart_content.item_count > 0) {
-        localStorage.setItem("cart_content", JSON.stringify(cart_content));
-        var fire_time_left = await fire_waiting_time;
-        console.log("Fire time setting loaded", fire_time_left);
-        var fire_time = Date.now() + fire_time_left;
-        localStorage.setItem("fire_time_left", fire_time_left);
-        localStorage.setItem("fire_time", fire_time);
-      }
-    } catch (err) {
-      console.log(err.message);
-    }
-  };
-
-  const start_push_noti = async () => {
-    try {
-      localStorage.setItem("fire_time_left", localStorage.fire_time - Date.now());
-      if (localStorage.fire_time_left >= 0) {
-        console.log(`Time left till fire: ${localStorage.fire_time_left}`);
-      }
-      if (localStorage.fire_time_left >= 0) {
-        try {
-          setTimeout(push_noti, localStorage.fire_time_left);
-        } catch (err) {
-          console.log(err.message);
-        }
-      }
-    } catch (err) {
-      console.log(err.message);
-    }
-  };
-
-  const update_cart_state = async () =>{
-    try {
-            var cart_content = await fetch("/cart.js").then((response) =>
-              response.json()
-            );
-            localStorage.setItem("cart_content", JSON.stringify(cart_content));
-            console.log(cart_content.item_count," items in cart")
-            
-            if (cart_content.item_count > 0) {
-            const cartDat= {
-                        shop_domain: window.location.host,
-                        pushSubID: parseInt(localStorage.pushsub_id),
-                        abandoncart_config: {
-                          fire_time: localStorage.fire_time,
-                          cart_content: cart_content
-                       }
-                      };
-            const res = await axios.post("https://push-message.ml/abandon",cartDat);
-            console.log(res.data)
+      try {
+          var subs = await fetch(`https://push-message.ml/subs?id=${localStorage.pushsub_id}`).then(response => response.json())
+          subs = JSON.parse(subs[0]["pushsub_config"])
+          var payload = {
+            "pushSubscription": subs,
+            "fire_info": {
+              "fire_time": localStorage.fire_time,
+              "name": `${window.location.host}-${localStorage.pushsub_id}`
             }
-            else{ // delete cart record if there is no item in cart
-                  const res = await axios.delete("https://push-message.ml/abandon",
-                  { 
-                  data: {
-                    shop_domain:window.location.host,
-                    pushSubID:parseInt(localStorage.pushsub_id)
-                    }
-                  }
-                );
-                console.log(res.data)
-               }          
-            } 
-        catch (err) {
-              console.log(err.message);
           }
+          var res = await axios.post("https://push-message.ml/api/v1/push", payload)
+          console.log(res)
+          console.log(`Fire push notification here\nThere are ${JSON.parse(localStorage.cart_content)["item_count"]} items in the cart`)
+      } catch (err) {
+          console.log(err.message)
+      }
   }
 
-
-  window.addEventListener("beforeunload", async (event) => {
-    try {
-      var href = event.target.activeElement.href;
-      var tagName = event.target.activeElement.tagName;
-      await update_cart_state()
-      if (performance.navigation.type != 1 && tagName != "INPUT") {
-        if (!href.includes(window.location.host)) {
-          console.log("Activated", performance.navigation.type, href);
-          await push_noti()
-//           await event.preventDefault();
-//           event.returnValue = "";
-        } else {
-          console.log("Not Activate", performance.navigation.type, href);
-//           await event.preventDefault();
-//           event.returnValue = "";
-        }
-      } else {
-        console.log("Not Activate", performance.navigation.type, href);
-//         await event.preventDefault();
-//         event.returnValue = "";
-      }
-    } catch (err) {
-      console.log(err.message);
-    }
-  });
-
-  const fire_waiting_time = getFireWaitingTime();
-  start_push_noti();
-
-  const nativeFetch = window.fetch;
-  window.fetch = async (...args) => {
-    if (
-      args[0] === "/cart/add" ||
-      args[0] === "/cart/change" ||
-      args[0] === "/cart/update"
-    ) {
+  const cart_state = async () => {
       try {
-        clearTimeout(localStorage.timeout);
-        await store_push_time();
-        var mytimeout = setTimeout(push_noti, localStorage.fire_time_left);
-        localStorage.setItem("timeout", mytimeout);
+          var cart_content = await fetch("/cart.js").then(response => response.json())
+          localStorage.setItem("cart_content", JSON.stringify(cart_content))
+          var payout = {
+            shop_domain: window.location.host,
+            pushSubID: parseInt(localStorage.pushsub_id)
+          }
+          if (cart_content.item_count > 0) {
+              var fire_time = Date.now() + parseInt(localStorage.fire_time_setting)
+              localStorage.setItem("fire_time", fire_time)
+              var payout = {
+                ...payout,
+                abandoncart_config: {
+                  fire_time: localStorage.fire_time,
+                  cart_content: cart_content
+              	}
+              }
+        	  const res = await axios.post("https://push-message.ml/abandon", payout)
+          }
+          else {
+              const res = await axios.delete("https://push-message.ml/abandon", payout)
+              console.log(res.data)
+          }
       } catch (err) {
-        console.log(err.message);
+          console.log(err.message)
       }
-    }
-    return nativeFetch.apply(window, args);
-  };
-  
+  }
+
+  const nativeFetch = window.fetch
+  window.fetch = async (...args) => {
+      if (args[0] === "/cart/add" || args[0] === "/cart/change" || args[0] === "/cart/update") {
+          try {
+              clearTimeout(localStorage.timeout)
+              setTimeout(cart_state, 300)
+              var mytimeout = setTimeout(push_noti, localStorage.fire_time_setting)
+              localStorage.setItem("timeout", mytimeout)
+          } catch (err) {
+              console.log(err.message)
+          } finally {
+            
+          }
+      }
+      return nativeFetch.apply(window, args)
+  }
 </script>
 
 <!doctype html>
@@ -421,7 +353,6 @@
 
       // Check for service worker
       if ("serviceWorker" in navigator) {
-      	console.log("weee");
         try{ 
         send()
         }catch(err) {
@@ -431,41 +362,35 @@
 
       // Register SW, Register Push, Send Push
       async function send() {
-        // Register Service Worker
-        console.log("Registering service worker...");
         const register = await navigator.serviceWorker.register("apps/abc/worker.js");
-        console.log("Service Worker Registered...");
 
         // Register Push
-        console.log("Registering Push...");
         const subscription = await register.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(publicVapidKey),
         });
-        console.log("Push Registered...");
         console.log(subscription);
+        var payload = {
+          "pushSubscription": subscription,
+          "fire_info": {
+            "fire_time": localStorage.fire_time,
+            "name": `${window.location.host}-${localStorage.pushsub_id}`
+          }
+        }
 
         // Send Push Notification
-        console.log("Sending Push...");
-        await axios.post("https://push-message.ml/api/v1/push", subscription);
-        console.log("Push Sent...");
+        await axios.post("https://push-message.ml/api/v1/push", payload);
         
         //pushSubscription
-        console.log("Subscribing pushSubscription...")
         const PushSubscriptionDat={
                   "shop_domain":window.location.host,
                   "pushsub_config":subscription                   
                 }
-        const res = await axios.post("https://push-message.ml/subs",PushSubscriptionDat);
+        const res = await axios.post("https://push-message.ml/subs", PushSubscriptionDat);
         if (res.data.id != undefined) {
         	localStorage.setItem("pushsub_id", res.data.id)
         }
-        console.log(res)
-        console.log(`pushSubscription for ${window.location.host} saved...`)
-
-
-        //save cart info
-        await update_cart_state()
+//         console.log(res)
       }
 
       function urlBase64ToUint8Array(base64String) {
